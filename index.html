@@ -2,47 +2,279 @@
 <html lang="en-us">
 
 <head>
+  <meta name="Description" content="A webassembly version of imagemagick that can crop comics into webtoon or tapas format.">
+  <link rel="manifest" href="manifest.json">
   <meta charset="utf-8">
-  <title>Rotate</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- <link rel="icon" href="favicon.png"> -->
+
+  <title>zinebot.wasm</title>
+
+  <!-- download dependencies to zip and download files -->
+  <script DEFER src="https://cdn.jsdelivr.net/g/filesaver.js"></script>
+  <script DEFER src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
 </head>
 
+<style>
+    h1 {
+        font-weight: 100;
+    }
+    body {
+        width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: 50px;
+    }
+    img {
+        display: block;
+        border: 1px solid black;
+        box-shadow: 10px 10px 0 black;
+        margin-top: 30px;
+        max-width: 100%;
+    }
+    table {
+        display: none;
+    }
+</style>
+
 <body>
-  For license info of this project and related components see
-  <a href="https://github.com/knicknic/WASM-ImageMagick">https://github.com/knicknic/WASM-ImageMagick</a>
-  <BR>
-  <p>Source image: </p>
-  <img id="srcImage" src="rotate.png">
-  <BR>
-  <br>
-  <p>Rotated and enlarged image: </p>
-  <img id="rotatedImage">
+    <h1>ZineBot + Wasm?</h1>
+    <table><tr>
+            <td><label for="DoLine">do line</label></td>
+            <td><input type="checkbox" name="DoLine" id="DoLine" value="1" checked="checked"></td>
+        </tr><tr>
+            <td><label for="DoTapas">do tapas</label></td>
+            <td><input type="checkbox" name="" id="DoTapas" value="1" /></td>
+        </tr><tr>
+            <td><label for="AddPromo">add promo</label></td>
+            <td><input type="checkbox" name="AddPromo" id="AddPromo" value="1"/></td>
+    </tr></table>
 
-  <script type='module'>
-    //import the library to talk to imagemagick
-    import * as Magick from 'https://knicknic.github.io/wasm-imagemagick/magickApi.js';
+    <input type=file name=file id="your-files" aria-label="File Input" accept=".jpg,.jpeg,.png,.bmp,.tif,.tiff,.psd" multiple>
+    <div id="Processing" hidden="true"><p>Working... Wait 60sec per file then give up.</p></div>
+    <div id="imageHolder" class="image-holder"></div>
+    
+    <script type='module'>
+        import * as Magick from 'https://knicknic.github.io/wasm-imagemagick/magickApi.js';
 
-    // various html elements
-    let rotatedImage = document.getElementById('rotatedImage');
+        let processing = document.getElementById("Processing");
+        let imageHolder = document.getElementById('imageHolder');
+        let addPromo = document.getElementById("AddPromo");
+        let doTapas = document.getElementById("DoTapas");
+        let doLine = document.getElementById("DoLine");
 
-    // Fetch the image to rotate, and call image magick
-    let DoMagickCall = async function () {
-      let fetchedSourceImage = await fetch("./rotate.png");
-      let arrayBuffer = await fetchedSourceImage.arrayBuffer();
-      let sourceBytes = new Uint8Array(arrayBuffer);
+        function GenerateZipItemName(name, prefix){
+            if(!doLine.checked || !doTapas.checked) return name;
+            return prefix + '/' + name;
+        }
 
-      // calling image magick with one source image, and command to rotate & resize image
-      const files = [{ 'name': 'srcFile.png', 'content': sourceBytes }];
-      const command = ["convert", "srcFile.png", "-rotate", "90", "-resize", "200%", "out.png"];
-      let processedFiles = await Magick.Call(files, command);
+        function GenerateZip(line, tapas) {
+            let zip = new JSZip();
+            if((line.length + tapas.length ) >0){
+            for(let item of line){
+                zip.file(GenerateZipItemName(item.name, 'webtoon'), item.blob);
+            }
+            for(let item of tapas){
+                zip.file(GenerateZipItemName(item.name, 'tapas'), item.blob)
+            }
+            zip.generateAsync({ type: "blob" })
+                .then(function (content) {
+                // see FileSaver.js
+                saveAs(content, "split.zip");
+                });
+            }
+        };
 
-      // response can be multiple files (example split)
-      // here we know we just have one
-      let firstOutputImage = processedFiles[0]
-      rotatedImage.src = URL.createObjectURL(firstOutputImage['blob'])
-      console.log("created image " + firstOutputImage['name'])
-    };
-    DoMagickCall();
-  </script>
+        // helper to read user inputed files
+        function ReadFile(file) {
+            let readFile = Magick.CreatePromiseEvent();
+
+            // read fileName & content
+            let fr = new FileReader();
+            fr.onload = function (txt) {
+            let fileName = file.name
+
+            let encoded_txt = txt.target.result;
+            let content = new Uint8Array(encoded_txt);
+            let sourceFilename = fileName
+            
+            readFile['resolve']([sourceFilename, content]);
+            }
+            fr.readAsArrayBuffer(file);
+
+            return readFile;
+        };
+
+        function SetProcessing(isProcessing) {
+            //filesRemaining.hidden = !isProcessing;
+            processing.hidden = !isProcessing;
+        }
+
+        function DoSomeTrack(category, action, name) {
+            try { _paq.push(['trackEvent', category, action, name]) } catch(e) {}
+            try {
+                console.log('about to send GA');
+                gtag('event', action, {
+                    'event_category': category,
+                    'event_label': name,
+                });   
+                console.log('sent to GA');
+            } catch(e) {}
+        }
+
+        function IsTooLarge(files){
+            let total = 0
+            for ( let fileIndex = 0; fileIndex < files.length; ++fileIndex ) {
+                total = total + files[fileIndex].blob.size
+            }
+            // is total greater than 19.5MB
+            return total > 20459520 
+        }
+
+        function CompletedImage(category, action, name){
+            DoSomeTrack(category, action, name);
+            try { _paq.push(['trackGoal', 1]) } catch(e) {}
+        }
+
+        var magickWorker = new Worker('magick.js');
+        function AlertIt(confirmText, destination) {
+            var answer = confirm (confirmText)
+            if (answer) window.location=destination;
+        }
+        
+        function IsJpeg(extension){
+            extension = extension.toLowerCase()
+            return extension == "jpeg" || extension == "jpg"
+        }
+
+        // handle new images to process
+        var control = document.getElementById("your-files");
+        var processFiles = async function () {
+            // When the control has changed, there are new files
+
+            let files = control.files,
+            len = files.length;
+            //if images
+            if (len > 0) {
+                //clean up old images and show processing screen
+                SetProcessing(true);
+                imageHolder.innerHTML = '';
+
+                // for each file requested split them (files isn't an array)
+                let processedImagesLine=[];
+                let processedImagesTapas=[];
+                let failedProcessing = false;
+
+                let firstFileName = files[0].name;
+                let extension_first_file = firstFileName.substring(1+firstFileName.lastIndexOf('.'))
+                let conversion_destination = '';
+
+                if (doLine.checked) conversion_destination = 'Line';
+                if (doTapas.checked) conversion_destination = 'Tapas';
+                if (doTapas.checked && doTapas.checked) conversion_destination = 'Line_Tapas';
+
+                DoSomeTrack("convert_start", extension_first_file, conversion_destination);
+                
+                for (let webtoonRetryLogic = 0; webtoonRetryLogic < 3; ++webtoonRetryLogic) {
+                    let oldLineSplitCount = processedImagesLine.length
+                    processedImagesLine = [];
+                    processedImagesTapas = [];
+
+                    for (let fileIndex = 0; fileIndex < files.length; ++fileIndex) {
+                        try {
+                            if (false) {
+                                let [fileName, content] = await ReadFile(files[fileIndex]);
+                                let fileNameNoExt = fileName.substring(0, fileName.lastIndexOf('.'));
+                                let splitFiles = []
+
+                                if (webtoonRetryLogic == 0 && IsJpeg(extension_first_file)) {
+                                    webtoonRetryLogic =1; //skip attempting to do png
+                                }
+                                
+                                let destFilename = fileNameNoExt + '-%d.png'
+                                // first do PNG
+                                switch (webtoonRetryLogic) {
+                                    case 0:
+                                        // should skip this if input file is .jpg or .jpeg (ignore case)
+                                        destFilename = fileNameNoExt + '-%d.png'
+                                        splitFiles = await Magick.Call([{'name': fileName, 'content':content}],
+                                            ["convert", fileName, "-flatten", "-resize", "400", "-crop", "400x500", "-quality", "100", "-scene", "0", "-monochrome", destFilename]);
+                                        break;
+                                    
+                                    // PNG is too large, try JPG
+                                    case 1:
+                                        destFilename = fileNameNoExt + '-%d.jpg'
+                                        splitFiles = await Magick.Call([{'name': fileName, 'content':content}],
+                                            ["convert", fileName, "-flatten", "-resize", "400", "-crop", "400x500", "-quality", "100", "-scene", "0", "-monochrome", destFilename]);
+                                        break;
+
+                                    // jpeg too large, max file size each file
+                                    case 2:
+                                        destFilename = fileNameNoExt + '-%d.jpg'
+                                        let maxSize = Math.floor(20459520 / oldLineSplitCount)
+                                        let maxSizeStr = "jpeg:extent=" + maxSize
+                                        splitFiles = await Magick.Call([{'name': fileName, 'content':content}],
+                                            ["convert", fileName, "-flatten", "-resize", "400", "-crop", "400x500", "-define", maxSizeStr, "-scene", "0", "-monochrome", destFilename]);
+                                        break;
+                                }
+                                
+                                processedImagesLine.push(...splitFiles);
+                            }
+
+                            if (true) {
+                                let [fileName,content] = await ReadFile(files[fileIndex]);
+                                let fileNameNoExt = fileName.substring(0, fileName.lastIndexOf('.'));
+                                let destFilename = fileNameNoExt + '-%d.png'
+
+                                if(IsJpeg(extension_first_file)) destFilename = fileNameNoExt + '-%d.jpg';
+
+                                let splitFiles = await Magick.Call([{'name': fileName, 'content':content}],
+                                    ["convert", fileName, "-resize", "400", "-monochrome", destFilename]);
+
+                                // let splitFiles = await Magick.Call([{'name': fileName, 'content':content}],
+                                //     ["convert", fileName, "-flatten", "-resize", ">940", "-crop", "x1280", "-quality", "100", "-scene", "0", destFilename]);
+
+                                processedImagesTapas.push(...splitFiles);
+                            }
+
+                        } catch(e) {
+                            if (!failedProcessing) {
+                                failedProcessing = true;
+                                DoSomeTrack("convert_failed", extension_first_file, conversion_destination);
+                                
+                                AlertIt("Error croppy could not format your file, old croppy may be up to the task, hit ok to go to https://old.croppy.duckdns.org", "https://old.croppy.duckdns.org");
+                            }
+                        }
+                    }
+
+                    if (!IsTooLarge(processedImagesLine) || failedProcessing) break;
+                }
+                
+                GenerateZip(processedImagesLine, processedImagesTapas);
+
+                let processedImages = processedImagesLine;
+                processedImages.push(...processedImagesTapas);
+
+                for (let file of processedImages) {
+                    let out_txt1 = file['blob'];
+                    let img = document.createElement('img');
+                    img.src = URL.createObjectURL(out_txt1);
+                    img.className = "split-image";
+                    img.name = file['name'];
+                    img.wasmResponse = file;
+                    imageHolder.appendChild(img);
+                }
+                
+                CompletedImage("convert_complete", extension_first_file, conversion_destination);
+                SetProcessing(false);
+            }      
+        };
+        control.addEventListener("change", function (event) {
+            event.preventDefault();
+            processFiles();
+        }, false);
+    </script>
+
 </body>
-
 </html>
