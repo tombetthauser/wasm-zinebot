@@ -18,6 +18,7 @@
 
 <style>
     textarea { display: block; }
+    img { border: 1px solid black; box-shadow: 10px 10px 0 black; margin-top: 25px; }
 </style> 
 
 <body>
@@ -33,9 +34,11 @@
     import * as Magick from 'https://knicknic.github.io/wasm-imagemagick/magickApi.js';
 
     // Access DOM elements...
+    const userFiles = document.getElementById("user-files");
     const imageDiv = document.getElementById("images-div");
     const textArea = document.getElementById("text-area");
     const goButton = document.getElementById("go-button");
+
 
     // Function for reading user uploads... [tested]
     const readFile = file => {
@@ -53,10 +56,35 @@
         return readFile;
     }
 
-    // 
-    const userFiles = document.getElementById("user-files");
+    // Working for joining multiple images...
+    const processFiles2 = async () => {
+        const files = userFiles.files;
+        const [fileName, content] = await readFile(files[0]);
+        const [fileName2, content2] = await readFile(files[1]);
+
+        imageDiv.innerHTML = '';
+
+        const magickOutput = await Magick.execute({
+            inputFiles: [
+                {name: fileName, content: content}, 
+                {name: fileName2, content: content2}
+            ], 
+            commands: `convert ${files[0].name} ${files[1].name} +append ${textArea.value} output.png`
+        })
+
+        const file = magickOutput.results[0].outputFiles[0];
+        console.log(file)
+
+        const imageBlob = new Blob([file.buffer]);
+        const imageEle = document.createElement('img');
+        imageEle.src = URL.createObjectURL(imageBlob);
+        imageEle.name = file['name'];
+        imageEle.wasmResponse = file;
+        imageDiv.appendChild(imageEle);
+    }
     
-    const processFilesA = async () => {
+    // Working but cant access multiple images...
+    const processFiles1 = async () => {
         const files = userFiles.files;
         const filesLength = files.length;
         const userStyling = textArea.value.split(" ");
@@ -78,6 +106,7 @@
             }
         }
 
+        // Add images to page...
         for (let i = 0; i < processedImages.length; i++) {
             const file = processedImages[i];
             const imageBlob = file['blob'];
@@ -89,9 +118,10 @@
         }
     }
 
+    // Add listener to go button...
     goButton.addEventListener("click", event => {
         event.preventDefault();
-        processFilesA();
+        processFiles2();
     }, false);
 
 </script>
