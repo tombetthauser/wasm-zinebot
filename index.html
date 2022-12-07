@@ -63,6 +63,20 @@
     
     <script type='module'>
         import * as Magick from 'https://knicknic.github.io/wasm-imagemagick/magickApi.js';
+        import { buildInputFile, execute, loadImageElement } from 'https://knicknic.github.io/wasm-imagemagick/magickApi.js'
+
+        // const { outputFiles, exitCode} = await execute({
+        //   inputFiles: [await buildInputFile('http://some-cdn.com/foo/fn.png', 'image1.png')],
+        //   commands: [
+        //     'convert image1.png -rotate 70 image2.gif',
+        //     // heads up: the next command uses 'image2.gif' which was the output of previous command:
+        //     'convert image2.gif -scale 23% image3.jpg',
+        //   ],
+        // })
+        // if(exitCode !== 0)
+        //     await loadImageElement(outputFiles[0], document.getElementById('outputImage'))
+
+
 
         let processing = document.getElementById("Processing");
         let imageHolder = document.getElementById('imageHolder');
@@ -94,24 +108,20 @@
         };
 
         // helper to read user inputed files
-        function ReadFile(file) {
+        const ReadFile = file => {asdf
             let readFile = Magick.CreatePromiseEvent();
+            let fileReader = new FileReader();
+            fileReader.onload = text => {
+                const fileName = file.name
+                const encodedText = text.target.result;
+                const content = new Uint8Array(encodedText);
+                const sourFileName = fileName;
 
-            // read fileName & content
-            let fr = new FileReader();
-            fr.onload = function (txt) {
-            let fileName = file.name
-
-            let encoded_txt = txt.target.result;
-            let content = new Uint8Array(encoded_txt);
-            let sourceFilename = fileName
-            
-            readFile['resolve']([sourceFilename, content]);
+                readFile['resolve']([sourFileName, content]);
             }
-            fr.readAsArrayBuffer(file);
-
+            fileReader.readAsArrayBuffer(file);
             return readFile;
-        };
+        }
 
         function SetProcessing(isProcessing) {
             //filesRemaining.hidden = !isProcessing;
@@ -274,7 +284,15 @@
                     img.wasmResponse = file;
                     imageHolder.appendChild(img);
                 }
-                
+
+                let out_txt1 = file['blob'];
+                let img = document.createElement('img');
+                img.src = URL.createObjectURL(out_txt1);
+                img.className = "split-image";
+                img.name = file['name'];
+                img.wasmResponse = file;
+                imageHolder.appendChild(img);
+            
                 CompletedImage("convert_complete", extension_first_file, conversion_destination);
                 SetProcessing(false);
             }      
