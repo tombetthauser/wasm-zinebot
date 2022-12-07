@@ -31,10 +31,14 @@
         border: 1px solid black;
         box-shadow: 10px 10px 0 black;
         margin-top: 30px;
+        margin-bottom: 30px;
         max-width: 100%;
     }
     table {
         display: none;
+    }
+    #download {
+        margin-top: 5px;
     }
 </style>
 
@@ -54,6 +58,8 @@
     <input type=file name=file id="your-files" aria-label="File Input" accept=".jpg,.jpeg,.png,.bmp,.tif,.tiff,.psd" multiple>
     <div id="Processing" hidden="true"><p>Working... Wait 60sec per file then give up.</p></div>
     <div id="imageHolder" class="image-holder"></div>
+
+    <button id="download">download</button>
     
     <script type='module'>
         import * as Magick from 'https://knicknic.github.io/wasm-imagemagick/magickApi.js';
@@ -63,6 +69,7 @@
         let addPromo = document.getElementById("AddPromo");
         let doTapas = document.getElementById("DoTapas");
         let doLine = document.getElementById("DoLine");
+        let downloadButton = document.getElementById("download");
 
         function GenerateZipItemName(name, prefix){
             if(!doLine.checked || !doTapas.checked) return name;
@@ -251,7 +258,9 @@
                     if (!IsTooLarge(processedImagesLine) || failedProcessing) break;
                 }
                 
-                GenerateZip(processedImagesLine, processedImagesTapas);
+                downloadButton.addEventListener("click", () => {
+                    GenerateZip(processedImagesLine, processedImagesTapas);
+                }) // ???
 
                 let processedImages = processedImagesLine;
                 processedImages.push(...processedImagesTapas);
