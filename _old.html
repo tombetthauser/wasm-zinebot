@@ -76,8 +76,6 @@
         // if(exitCode !== 0)
         //     await loadImageElement(outputFiles[0], document.getElementById('outputImage'))
 
-
-
         let processing = document.getElementById("Processing");
         let imageHolder = document.getElementById('imageHolder');
         let addPromo = document.getElementById("AddPromo");
@@ -86,7 +84,7 @@
         let downloadButton = document.getElementById("download");
 
         function GenerateZipItemName(name, prefix){
-            if(!doLine.checked || !doTapas.checked) return name;
+            if (!doLine.checked || !doTapas.checked) return name;
             return prefix + '/' + name;
         }
 
@@ -101,7 +99,6 @@
             }
             zip.generateAsync({ type: "blob" })
                 .then(function (content) {
-                // see FileSaver.js
                 saveAs(content, "split.zip");
                 });
             }
