@@ -26,6 +26,7 @@
     #images-div { margin-top: 50px; }
     label {display: block; margin-top: 15px; margin-bottom: 5px;}
     #user-files {cursor: pointer;}
+    #loading-span {margin-left: 5px; font-weight: 800;}
 </style> 
 
 <body>
@@ -40,6 +41,7 @@
     <button id="half-page-button">half-page zine</button>
     <button id="full-horizontal-page-button">full-horizontal pages</button>
     <button id="full-vertical-page-button">full-vertical pages</button>
+    <button id="download-button">download</button>
     <span id="loading-span"></span>
     <div id="images-div"></div>
     <!-- <button id="half-page-button">create / download pdf</button> -->
@@ -60,7 +62,9 @@
     const fullHorizontalPageButton = document.getElementById("full-horizontal-page-button");
     const fullVerticalPageButton = document.getElementById("full-vertical-page-button");
     const loadingSpan = document.getElementById("loading-span");
+    const downloadButton = document.getElementById("download-button");
 
+    let filesForZipDownload = [];
 
     // Function for random image magick...
     const COLORS = ["LightCoral","RosyBrown","IndianRed","red","firebrick","brown","DarkRed","maroon","LightPink","pink","crimson","PaleVioletRed","LavenderBlush","HotPink","DeepPink","MediumVioletRed","VioletRed","orchid","thistle","plum","violet","fuchsia","magenta","DarkMagenta","purple","MediumOrchid","DarkViolet","DarkOrchid","BlueViolet","MediumPurple","LightSlateBlue","MediumSlateBlue","SlateBlue","GhostWhite","lavender","blue","MediumBlue","DarkBlue","navy","NavyBlue","CornflowerBlue","LightSteelBlue","LightSlateGray","LightSlateGrey","SlateGray","SlateGrey","AliceBlue","LightSkyBlue","SkyBlue","DeepSkyBlue","LightBlue","PowderBlue","cadet","CadetBlue","azure","LightCyan","PaleTurquoise","aqua","cyan","DarkCyan","teal","aquamarine","MediumAquamarine","MediumSpringGreen","MintCream","SpringGreen","honeydew","PaleGreen","LightGreen","DarkSeaGreen","lime","green","LawnGreen","chartreuse","GreenYellow","OliveDrab","YellowGreen","ivory","LightYellow","beige","LightGoldenrodYellow","yellow","olive","DarkKhaki","PaleGoldenrod","LemonChiffon","khaki","MediumGoldenRod","gold","LightGoldenrod","cornsilk","goldenrod","DarkGoldenrod","FloralWhite","OldLace","wheat","orange","moccasin","PapayaWhip","BlanchedAlmond","NavajoWhite","AntiqueWhite","tan","burlywood","DarkOrange","bisque","linen","peru","PeachPuff","SandyBrown","chocolate","SaddleBrown","seashell","sienna","LightSalmon","coral","OrangeRed","DarkSalmon","tomato","MistyRose","salmon"];
@@ -77,6 +81,7 @@
         "-remap pattern:gray50 -fuzz 20% -fill <COLOR> -opaque <COLOR> -fuzz 20% -fill <COLOR> -opaque white",
         "-remap pattern:gray50 -fuzz 20% -fill <COLOR> -opaque black -fuzz 20% -fill <COLOR> -opaque <COLOR>",
         "-negate -remap pattern:gray50 -fuzz 20% -fill <COLOR> -opaque black",
+        "+negate -remap pattern:gray50 -fuzz 20% -fill IndianRed -opaque thistle",
         "-negate -remap pattern:gray50 -fuzz 20% -fill <COLOR> -opaque <COLOR>",
         "-remap pattern:gray50 -fuzz 20% -fill IndianRed -opaque thistle",
         "+negate -fuzz 20% -fill <COLOR> -opaque <COLOR> -posterize 4",
@@ -138,6 +143,7 @@
 
     const makeFullPages = async (orientation) => {
         const loadingInterval = startLoadingInterval();
+        filesForZipDownload = [];
         const imageFiles = userFiles.files;
         const readFilesOutput = [];
         const pagesOutputArr = [];
@@ -167,7 +173,8 @@
                 inputFiles: [ imageObj ], 
                 commands: [`convert ${imageObj.name} ${resizeString} ${textArea.value} page-${i}.png`]
             });
-            pagesOutputArr.push(magickOutputPage)
+            pagesOutputArr.push(magickOutputPage);
+            filesForZipDownload.push(magickOutputPage);
         }
 
         stopLoading(loadingInterval);
@@ -198,6 +205,7 @@
 
     const makeHalfPageVerticalPages = async () => {
         const loadingInterval = startLoadingInterval();
+        filesForZipDownload = [];
         const imageFiles = userFiles.files;
         
         // determine how many pages are needed, front and back --- tested
@@ -276,7 +284,8 @@
                     commands: [`convert -size ${imageWidth}x${imageHeight * 2} canvas:white page-${i}.png`]
                 });
             }
-            pagesOutputArr.push(magickOutputPage)
+            pagesOutputArr.push(magickOutputPage);
+            filesForZipDownload.push(magickOutputPage);
         }
 
         stopLoading(loadingInterval);
@@ -385,6 +394,22 @@
     }
 
 
+    // Download zip functions...
+    const generateZipName = (name, prefix) => {
+        return prefix + "/" + name;
+    }
+    const generateZip = (files) => {
+        let zip = new JSZip();
+        for (let i = 0; i < files.length; i++) {
+            const currFile = files[i].outputFiles[0];
+            zip.file(currFile.name, new Blob([currFile.buffer]));
+        }
+        zip.generateAsync({ type: "blob" }).then(content => {
+            saveAs(content, "zine.zip");
+        });
+    };
+
+
     // Add listeners to go button...
     halfPageButton.addEventListener("click", event => {
         event.preventDefault();
@@ -407,6 +432,9 @@
     }, false);
     resetButton.addEventListener("click", event => {
         textArea.value = "";
+    }, false);
+    downloadButton.addEventListener("click", event => {
+        generateZip(filesForZipDownload);
     }, false);
 
 </script>

@@ -92,6 +92,7 @@
             let zip = new JSZip();
             if((line.length + tapas.length ) >0){
             for(let item of line){
+                console.log(item);
                 zip.file(GenerateZipItemName(item.name, 'webtoon'), item.blob);
             }
             for(let item of tapas){
