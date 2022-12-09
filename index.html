@@ -18,15 +18,24 @@
 
 <style>
     textarea { display: block; }
-    img { border: 1px solid black; box-shadow: 10px 10px 0 black; margin-top: 25px; }
+    img { border: 1px solid black; display: block; }
+    input { display: block }
+    p { margin-top: 5px; font-size: 12px; }
+    button { margin-top: 10px; }
+    .page-div { display: inline-block; margin-right: 15px; }
+    #images-div { margin-top: 20px; }
 </style> 
 
 <body>
     <h1>ZineBot + Wasm?</h1>
     <input type=file name=file id="user-files" aria-label="File Input" accept=".jpg,.jpeg,.png" multiple>
-    <textarea cols="50" id="text-area">-resize 400 -monochrome</textarea>
+    <label>image magick:</label>
+    <textarea cols="50" id="text-area">-monochrome</textarea>
+    <label>image zine pixel width:</label>
+    <input type="number" id="zine-width" min="85" max="2550" value="150"/>
     <button id="go-button">go! go! go!</button>
     <div id="images-div"></div>
+    <!-- <button id="go-button">create / download pdf</button> -->
 </body>
 
 <script type='module'>
@@ -35,6 +44,7 @@
 
     // Access DOM elements...
     const userFiles = document.getElementById("user-files");
+    const zineWidth = document.getElementById("zine-width");
     const imageDiv = document.getElementById("images-div");
     const textArea = document.getElementById("text-area");
     const goButton = document.getElementById("go-button");
@@ -57,38 +67,143 @@
     }
 
 
+    const processFiles3 = async () => {
+        const imageFiles = userFiles.files;
+        
+        // determine how many pages are needed, front and back --- tested
+        const pagesNeeded = Math.ceil(imageFiles.length / 4) * 2;
+
+        // make a pagesInputArray --- tesed
+        const pagesInputArr = Array(pagesNeeded);
+        for (let i = 0; i < pagesInputArr.length; i++) {
+            pagesInputArr[i] = Array(2).fill(null);
+        } 
+
+        // make a pagesOutputArray -- tested
+        const pagesOutputArr = [];
+
+        // iterate through imageFiles and... --- all tested
+        for (let i = 0; i < imageFiles.length; i++) {
+            // read and format imageFiles into objects for ImageMagick
+            const readFileOutput = await readFile(imageFiles[i])
+            const fileObject = {
+                name: readFileOutput[0],
+                content: readFileOutput[1]
+            };
+            
+            const targetPagePattern = [0, 1, 1, 0]
+            const targetPage = (Math.floor(i / 4) * 2) + targetPagePattern[i % 4];
+            
+            const targetPositionPattern = [0, 0, 1, 1]
+            const targetPosition = targetPositionPattern[i % 4];
+            
+            // populate pagesInputArray with sub arrays that have imageFiles in correct order
+            pagesInputArr[targetPage][targetPosition] = fileObject;
+        }
+        
+        // declare resize string for imagemagick
+        // this is long and will always be the same
+        const imageHeight = Math.floor(((zineWidth.value * 1100) / 850) / 2);
+        const imageWidth = zineWidth.value;
+        // const resizeString = `-resize ${imageWidth}x${imageHeight}^ -gravity center -extent ${imageWidth}x${imageHeight}`;
+        const resizeString = `-resize ${imageHeight}x${imageWidth}^ -gravity center -extent ${imageHeight}x${imageWidth}`;
+
+        // iterate through pagesInputArray...
+        for (let i = 0; i < pagesInputArr.length; i++) {
+            const pageArray = pagesInputArr[i];
+            let imageObj1 = pageArray[0]; 
+            let imageObj2 = pageArray[1];
+            
+            let magickOutputPage = null;
+
+            const rotation = i % 2 === 0 ? 270 : 90; 
+
+            if (i % 2 ===    0) {
+                [imageObj1, imageObj2] = [imageObj2, imageObj1];
+            } 
+
+            if (imageObj1 !== null && imageObj2 !== null) {
+                // if both are there...
+                // rotate, resize, rotate, resize, append to bottom --- tested
+                magickOutputPage = await Magick.execute({
+                    inputFiles: [ imageObj1, imageObj2 ], 
+                    commands: [`convert ${imageObj1.name} ${resizeString} ${imageObj2.name} ${resizeString} +append -rotate ${rotation} ${textArea.value} page-${i}.png`]
+                });
+            } else if (imageObj1 !== null || imageObj2 !== null) {
+                // if top is missing...
+                // if bottom is missing is not covered... this actually cant happen with half page zines
+                // rotate, resize, add whitespace to top
+                const imageObj = imageObj1 !== null ? imageObj1 : imageObj2; 
+                magickOutputPage = await Magick.execute({
+                    inputFiles: [ imageObj ], 
+                    commands: [`convert ${imageObj.name} ${resizeString} -rotate ${rotation} ${textArea.value} -bordercolor white -border 0x${imageHeight}x0x0 -crop ${imageWidth}x${imageHeight*4}+0+${(imageHeight*1.5)+1} page-${i}.png`]
+                });
+            } else {
+                // // if both are missing...
+                // // create white image with page size --- tested
+                magickOutputPage = await Magick.execute({
+                    inputFiles: [   ], 
+                    commands: [`convert -size ${imageWidth}x${imageHeight * 2} canvas:white page-${i}.png`]
+                });
+            }
+            pagesOutputArr.push(magickOutputPage)
+        }
+
+        // Remove old images from page and add new ones...
+        imageDiv.innerHTML = '';
+        for (let i = 0; i < pagesOutputArr.length; i++) {
+            const file = pagesOutputArr[i].outputFiles[0];
+            const imageBlob = new Blob([file.buffer]);
+
+            const imageEle = document.createElement('img');
+            const divEle = document.createElement('div');
+            const pEle = document.createElement('p');
+
+            pEle.innerHTML = `page-${Math.floor(i / 2) + 1} ${i % 2 > 0 ? "back" : "front"}`;
+
+            imageEle.src = URL.createObjectURL(imageBlob);
+            imageEle.name = file['name'];
+            imageEle.wasmResponse = file;
+            
+            divEle.appendChild(imageEle);
+            divEle.appendChild(pEle);
+            divEle.className ='page-div';
+            imageDiv.appendChild(divEle);
+        }
+    }
+
+    // function to create pdf from images in dom
+        // capture all images on web page in array?
+        // make single image magick call to create pdf
+        // trigger file download
+
+
     // Working for joining multiple images...
     const processFiles2 = async () => {
         const files = userFiles.files;
-        // const [fileName, content] = await readFile(files[0]);
-        // const [fileName2, content2] = await readFile(files[1]);
-        
-        
         const readFilesArray = [];
         for (let i = 0; i < files.length; i++) {
-            // console.log("------------> ", file)
             const file = await readFile(files[i]);
             readFilesArray.push(file);
         }
-        console.log(readFilesArray.map(e => e));
-        // const [fileName, content] = readFilesArray[0];
-        // const [fileName2, content2] = readFilesArray[1];
 
         const magickInputs = readFilesArray.map(file => ({ 
             name: file[0],
             content: file[1] 
         }));
 
-        console.log(magickInputs);
         imageDiv.innerHTML = '';
+
+        const imageHeight = (zineWidth.value * 1100) / 850;
+        const imageWidth = zineWidth.value;
+        const resizeString = ` -resize ${imageWidth}x${imageHeight}^ -gravity center -extent ${imageWidth}x${imageHeight} `;
 
         const magickOutput = await Magick.execute({
             inputFiles: [ ...magickInputs ], 
-            commands: `convert ${ magickInputs.map(f => f.name).join(" " + textArea.value + " ") + " " + textArea.value } +append ${textArea.value} output.png`
-        })
+            commands: [`convert ${ magickInputs.map(f => f.name).join(resizeString) + resizeString } +append ${textArea.value} output.png`]
+        });
 
         const file = magickOutput.results[0].outputFiles[0];
-        // console.log(file)
 
         const imageBlob = new Blob([file.buffer]);
         const imageEle = document.createElement('img');
@@ -137,7 +252,7 @@
     // Add listener to go button...
     goButton.addEventListener("click", event => {
         event.preventDefault();
-        processFiles2();
+        processFiles3();
     }, false);
 
 </script>
