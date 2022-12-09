@@ -24,30 +24,79 @@
     button { margin-top: 10px; }
     .page-div { display: inline-block; margin-right: 15px; }
     #images-div { margin-top: 20px; }
+    label {display: block; margin-top: 15px; margin-bottom: 5px;}
 </style> 
 
 <body>
-    <h1>ZineBot + Wasm?</h1>
+    <h1>ZineBot + Wasm</h1>
     <input type=file name=file id="user-files" aria-label="File Input" accept=".jpg,.jpeg,.png" multiple>
     <label>image magick:</label>
-    <textarea cols="50" id="text-area">-monochrome</textarea>
+    <textarea cols="50" id="text-area"></textarea>
+    <button id="random-button">sample magick</button>
+    <button id="reset-button">reset magick</button>
     <label>image zine pixel width:</label>
-    <input type="number" id="zine-width" min="85" max="2550" value="150"/>
-    <button id="go-button">go! go! go!</button>
+    <input type="number" id="zine-width" min="85" max="2550" value="250"/>
+    <button id="half-page-button">half-page zine</button>
+    <button id="full-horizontal-page-button">full-horizontal pages</button>
+    <button id="full-vertical-page-button">full-vertical pages</button>
     <div id="images-div"></div>
-    <!-- <button id="go-button">create / download pdf</button> -->
+    <!-- <button id="half-page-button">create / download pdf</button> -->
 </body>
-
 <script type='module'>
+
     // Import Image Magick... [tested]
     import * as Magick from 'https://knicknic.github.io/wasm-imagemagick/magickApi.js';
 
     // Access DOM elements...
+    const resetButton = document.getElementById("reset-button");
+    const randomButton = document.getElementById("random-button");
     const userFiles = document.getElementById("user-files");
     const zineWidth = document.getElementById("zine-width");
     const imageDiv = document.getElementById("images-div");
     const textArea = document.getElementById("text-area");
-    const goButton = document.getElementById("go-button");
+    const halfPageButton = document.getElementById("half-page-button");
+    const fullHorizontalPageButton = document.getElementById("full-horizontal-page-button");
+    const fullVerticalPageButton = document.getElementById("full-vertical-page-button");
+
+
+    // Function for random image magick...
+    const COLORS = ["LightCoral","RosyBrown","IndianRed","red","firebrick","brown","DarkRed","maroon","LightPink","pink","crimson","PaleVioletRed","LavenderBlush","HotPink","DeepPink","MediumVioletRed","VioletRed","orchid","thistle","plum","violet","fuchsia","magenta","DarkMagenta","purple","MediumOrchid","DarkViolet","DarkOrchid","BlueViolet","MediumPurple","LightSlateBlue","MediumSlateBlue","SlateBlue","GhostWhite","lavender","blue","MediumBlue","DarkBlue","navy","NavyBlue","CornflowerBlue","LightSteelBlue","LightSlateGray","LightSlateGrey","SlateGray","SlateGrey","AliceBlue","LightSkyBlue","SkyBlue","DeepSkyBlue","LightBlue","PowderBlue","cadet","CadetBlue","azure","LightCyan","PaleTurquoise","aqua","cyan","DarkCyan","teal","aquamarine","MediumAquamarine","MediumSpringGreen","MintCream","SpringGreen","honeydew","PaleGreen","LightGreen","DarkSeaGreen","lime","green","LawnGreen","chartreuse","GreenYellow","OliveDrab","YellowGreen","ivory","LightYellow","beige","LightGoldenrodYellow","yellow","olive","DarkKhaki","PaleGoldenrod","LemonChiffon","khaki","MediumGoldenRod","gold","LightGoldenrod","cornsilk","goldenrod","DarkGoldenrod","FloralWhite","OldLace","wheat","orange","moccasin","PapayaWhip","BlanchedAlmond","NavajoWhite","AntiqueWhite","tan","burlywood","DarkOrange","bisque","linen","peru","PeachPuff","SandyBrown","chocolate","SaddleBrown","seashell","sienna","LightSalmon","coral","OrangeRed","DarkSalmon","tomato","MistyRose","salmon"];
+    const MAGICK = [
+        "-remap pattern:gray50 -fuzz 20% -fill <COLOR> -opaque black -fuzz 20% -fill <COLOR> -opaque white",
+        "-threshold 80% -remap pattern:gray50 -fuzz 20% -fill NavyBlue -opaque black -fuzz 20% -fill lavender -opaque white",
+        "-colorspace Gray -random-threshold 0x100% -colorspace RGB -fuzz 20% -fill <COLOR> -opaque white",
+        "-colorspace Gray -random-threshold 0x100% -colorspace RGB -fuzz 20% -fill <COLOR> -opaque <COLOR>",
+        "-colorspace Gray -fuzz 20% -fill #999 -opaque <COLOR> -colorspace RGB -channel All -random-threshold 40x80%",
+        "-colorspace Gray -fuzz 20% -fill #999 -opaque white -colorspace RGB -channel All -random-threshold 40x80%",
+        "-colorspace Gray -fuzz 20% -fill #999 -opaque <COLOR> -channel All -random-threshold 10x100%",
+        "-colorspace Gray -fuzz 20% -fill #999 -opaque white -channel All -random-threshold 10x100%",
+        "-remap pattern:gray50 -fuzz 20% -fill <COLOR> -opaque <COLOR> -fuzz 20% -fill <COLOR> -opaque <COLOR>",
+        "-remap pattern:gray50 -fuzz 20% -fill <COLOR> -opaque <COLOR> -fuzz 20% -fill <COLOR> -opaque white",
+        "-remap pattern:gray50 -fuzz 20% -fill <COLOR> -opaque black -fuzz 20% -fill <COLOR> -opaque <COLOR>",
+        "-negate -remap pattern:gray50 -fuzz 20% -fill <COLOR> -opaque black",
+        "-negate -remap pattern:gray50 -fuzz 20% -fill <COLOR> -opaque <COLOR>",
+        "+negate -fuzz 20% -fill <COLOR> -opaque <COLOR> -posterize 4",
+        "+negate -fuzz 20% -fill <COLOR> -opaque white -posterize 4",
+        "-colorspace Gray -random-threshold  0x100%",
+        "-negate -separate -threshold 50% -combine",
+        "-random-threshold  0x100%",
+        "-threshold 80%",
+        "-posterize 3",
+        "-negate",
+        "+negate",
+        "-monochrome",
+    ]
+    const createRandomMagick = () => {
+        let randomMagick = MAGICK[Math.floor(Math.random() * MAGICK.length)];
+        randomMagick = randomMagick.split(" ").map(ele => {
+            if (ele === "<COLOR>") {
+                return COLORS[Math.floor(Math.random() * COLORS.length)];
+            } else {
+                return ele;
+            }
+        }).join(" ");
+        return randomMagick;
+    }
 
 
     // Function for reading user uploads... [tested]
@@ -64,6 +113,63 @@
         }
         fileReader.readAsArrayBuffer(file);
         return readFile;
+    }
+
+
+    const makeFullPages = async (orientation) => {
+        const imageFiles = userFiles.files;
+        const readFilesOutput = [];
+        const pagesOutputArr = [];
+
+        for (let i = 0; i < imageFiles.length; i++) {
+            const readFileOutput = await readFile(imageFiles[i])
+            const fileObject = {
+                name: readFileOutput[0],
+                content: readFileOutput[1]
+            };
+            readFilesOutput.push(fileObject);
+        }
+        
+        // declare resize string for imagemagick
+        // this is long and will always be the same
+        let imageHeight = Math.floor((zineWidth.value * 1100) / 850);
+        let imageWidth = zineWidth.value;
+        if (orientation === "vertical") {
+           [imageWidth, imageHeight] = [imageHeight, imageWidth]; 
+        }
+        const resizeString = `-resize ${imageHeight}x${imageWidth}^ -gravity center -extent ${imageHeight}x${imageWidth}`;
+
+        // iterate through pagesInputArray...
+        for (let i = 0; i < readFilesOutput.length; i++) {
+            let imageObj = readFilesOutput[i]            
+            const magickOutputPage = await Magick.execute({
+                inputFiles: [ imageObj ], 
+                commands: [`convert ${imageObj.name} ${resizeString} ${textArea.value} page-${i}.png`]
+            });
+            pagesOutputArr.push(magickOutputPage)
+        }
+
+        // Remove old images from page and add new ones...
+        imageDiv.innerHTML = '';
+        for (let i = 0; i < pagesOutputArr.length; i++) {
+            const file = pagesOutputArr[i].outputFiles[0];
+            const imageBlob = new Blob([file.buffer]);
+
+            const imageEle = document.createElement('img');
+            const divEle = document.createElement('div');
+            const pEle = document.createElement('p');
+
+            pEle.innerHTML = `page-${Math.floor(i / 2) + 1} ${i % 2 > 0 ? "back" : "front"}`;
+
+            imageEle.src = URL.createObjectURL(imageBlob);
+            imageEle.name = file['name'];
+            imageEle.wasmResponse = file;
+            
+            divEle.appendChild(imageEle);
+            divEle.appendChild(pEle);
+            divEle.className ='page-div';
+            imageDiv.appendChild(divEle);
+        }
     }
 
 
@@ -249,10 +355,28 @@
         }
     }
 
-    // Add listener to go button...
-    goButton.addEventListener("click", event => {
+    // Add listeners to go button...
+    halfPageButton.addEventListener("click", event => {
         event.preventDefault();
         processFiles3();
+    }, false);
+    fullHorizontalPageButton.addEventListener("click", event => {
+        event.preventDefault();
+        makeFullPages("horizontal");
+    }, false);
+    fullVerticalPageButton.addEventListener("click", event => {
+        event.preventDefault();
+        makeFullPages("vertical");
+    }, false);
+    randomButton.addEventListener("click", event => {
+        const newRandomMagick = createRandomMagick();
+        if (textArea.value !== "") {
+            textArea.value += " ";
+        }
+        textArea.value += newRandomMagick;
+    }, false);
+    resetButton.addEventListener("click", event => {
+        textArea.value = "";
     }, false);
 
 </script>
