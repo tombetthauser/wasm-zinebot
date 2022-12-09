@@ -21,10 +21,11 @@
     img { border: 1px solid black; display: block; }
     input { display: block }
     p { margin-top: 5px; font-size: 12px; }
-    button { margin-top: 10px; }
+    button { margin-top: 10px; cursor: pointer;}
     .page-div { display: inline-block; margin-right: 15px; }
-    #images-div { margin-top: 20px; }
+    #images-div { margin-top: 50px; }
     label {display: block; margin-top: 15px; margin-bottom: 5px;}
+    #user-files {cursor: pointer;}
 </style> 
 
 <body>
@@ -32,13 +33,14 @@
     <input type=file name=file id="user-files" aria-label="File Input" accept=".jpg,.jpeg,.png" multiple>
     <label>image magick:</label>
     <textarea cols="50" id="text-area"></textarea>
-    <button id="random-button">sample magick</button>
+    <button id="random-button">random magick</button>
     <button id="reset-button">reset magick</button>
-    <label>image zine pixel width:</label>
+    <label>page pixel width:</label>
     <input type="number" id="zine-width" min="85" max="2550" value="250"/>
     <button id="half-page-button">half-page zine</button>
     <button id="full-horizontal-page-button">full-horizontal pages</button>
     <button id="full-vertical-page-button">full-vertical pages</button>
+    <span id="loading-span"></span>
     <div id="images-div"></div>
     <!-- <button id="half-page-button">create / download pdf</button> -->
 </body>
@@ -57,6 +59,7 @@
     const halfPageButton = document.getElementById("half-page-button");
     const fullHorizontalPageButton = document.getElementById("full-horizontal-page-button");
     const fullVerticalPageButton = document.getElementById("full-vertical-page-button");
+    const loadingSpan = document.getElementById("loading-span");
 
 
     // Function for random image magick...
@@ -75,6 +78,7 @@
         "-remap pattern:gray50 -fuzz 20% -fill <COLOR> -opaque black -fuzz 20% -fill <COLOR> -opaque <COLOR>",
         "-negate -remap pattern:gray50 -fuzz 20% -fill <COLOR> -opaque black",
         "-negate -remap pattern:gray50 -fuzz 20% -fill <COLOR> -opaque <COLOR>",
+        "-remap pattern:gray50 -fuzz 20% -fill IndianRed -opaque thistle",
         "+negate -fuzz 20% -fill <COLOR> -opaque <COLOR> -posterize 4",
         "+negate -fuzz 20% -fill <COLOR> -opaque white -posterize 4",
         "-colorspace Gray -random-threshold  0x100%",
@@ -99,6 +103,22 @@
     }
 
 
+    // Function to start loading sequence...
+    const startLoadingInterval = () => {
+        let counter = 0;
+        const charSequence = "–\\|/–\\";
+        return setInterval(() => {
+            loadingSpan.innerHTML = charSequence[counter % charSequence.length];
+            counter += 1;
+        }, 150)
+    }
+    const stopLoading = (loadingInterval) => {
+        clearInterval(loadingInterval);
+        loadingSpan.innerHTML = "";
+    };
+
+
+
     // Function for reading user uploads... [tested]
     const readFile = file => {
         let readFile = Magick.CreatePromiseEvent();
@@ -117,6 +137,7 @@
 
 
     const makeFullPages = async (orientation) => {
+        const loadingInterval = startLoadingInterval();
         const imageFiles = userFiles.files;
         const readFilesOutput = [];
         const pagesOutputArr = [];
@@ -149,6 +170,8 @@
             pagesOutputArr.push(magickOutputPage)
         }
 
+        stopLoading(loadingInterval);
+
         // Remove old images from page and add new ones...
         imageDiv.innerHTML = '';
         for (let i = 0; i < pagesOutputArr.length; i++) {
@@ -173,7 +196,8 @@
     }
 
 
-    const processFiles3 = async () => {
+    const makeHalfPageVerticalPages = async () => {
+        const loadingInterval = startLoadingInterval();
         const imageFiles = userFiles.files;
         
         // determine how many pages are needed, front and back --- tested
@@ -255,6 +279,8 @@
             pagesOutputArr.push(magickOutputPage)
         }
 
+        stopLoading(loadingInterval);
+
         // Remove old images from page and add new ones...
         imageDiv.innerHTML = '';
         for (let i = 0; i < pagesOutputArr.length; i++) {
@@ -286,6 +312,7 @@
 
     // Working for joining multiple images...
     const processFiles2 = async () => {
+        const loadingInterval = startLoadingInterval();
         const files = userFiles.files;
         const readFilesArray = [];
         for (let i = 0; i < files.length; i++) {
@@ -317,6 +344,8 @@
         imageEle.name = file['name'];
         imageEle.wasmResponse = file;
         imageDiv.appendChild(imageEle);
+
+        stopLoading(loadingInterval);
     }
     
 
@@ -355,10 +384,11 @@
         }
     }
 
+
     // Add listeners to go button...
     halfPageButton.addEventListener("click", event => {
         event.preventDefault();
-        processFiles3();
+        makeHalfPageVerticalPages();
     }, false);
     fullHorizontalPageButton.addEventListener("click", event => {
         event.preventDefault();
