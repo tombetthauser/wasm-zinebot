@@ -24,9 +24,12 @@
         width: 60%;
         min-width: 350px;
         border-bottom: 1px solid black;
-        padding-bottom: 10px;
+        padding-bottom: 6px;
+        margin-bottom: 6px;
         font-weight: 100;
     }
+    a { display: block; margin-bottom: 20px; text-decoration: none; }
+    a:hover { text-decoration: underline; }
     textarea { display: block; max-width: 80%; min-width: 300px;}
     img { border: 1px solid black; display: block; }
     input { display: block }
@@ -41,6 +44,7 @@
 
 <body>
     <h1>ZineBot ✂️</h1>
+    <a href="#">→ github</a>
     <input type=file name=file id="user-files" aria-label="File Input" accept=".jpg,.jpeg,.png" multiple>
     <label>image magick:</label>
     <textarea cols="50" id="text-area"></textarea>
