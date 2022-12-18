@@ -28,8 +28,9 @@
         margin-bottom: 6px;
         font-weight: 100;
     }
-    a { display: block; margin-bottom: 20px; text-decoration: none; }
+    a { display: block; margin-bottom: 0px; text-decoration: none; }
     a:hover { text-decoration: underline; }
+    #user-files { margin-top: 25px; }
     textarea { display: block; max-width: 80%; min-width: 300px;}
     img { border: 1px solid black; display: block; }
     input { display: block }
@@ -46,6 +47,7 @@
 
 <body>
     <h1>ZineBot ✂️</h1>
+    <a href="binding.html">→ binding instructions</a>
     <a href="https://github.com/tombetthauser/wasm-zinebot">→ github</a>
     <input type=file name=file id="user-files" aria-label="File Input" accept=".jpg,.jpeg,.png" multiple>
     <note>* Note: Photos from phones may mess up image rotation. If you have issues take screenshots of photos or use <a href="https://jimpl.com/remove-exif/">this random tool</a> to remove rotation metadata.</note>

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en-us">
+
+<head>
+  <meta name="Description" content="A webassembly version of imagemagick that can crop comics into webtoon or tapas format.">
+  <link rel="manifest" href="manifest.json">
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- <link rel="icon" href="favicon.png"> -->
+
+  <title>zinebot.wasm</title>
+
+  <!-- download dependencies to zip and download files -->
+  <script DEFER src="https://cdn.jsdelivr.net/g/filesaver.js"></script>
+  <script DEFER src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
+</head>
+
+<style>
+    body {
+        margin: 30px 5%;
+    }
+    h1 {
+        width: 60%;
+        min-width: 325px;
+        border-bottom: 1px solid black;
+        padding-bottom: 6px;
+        margin-bottom: 6px;
+        font-weight: 100;
+    }
+    h2 { font-weight: 100; }
+    a { display: block; margin-bottom: 20px; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    textarea { display: block; max-width: 80%; min-width: 300px;}
+    img { display: block; max-width: 90%; margin-top: 30px;}
+    input { display: block }
+    p { margin-top: 5px; font-size: 12px; max-width: 500px;}
+    button { margin-top: 10px; cursor: pointer;}
+    .page-div { display: inline-block; margin-right: 15px; }
+    #images-div { margin-top: 50px; }
+    label {display: block; margin-top: 15px; margin-bottom: 5px;}
+    #user-files {cursor: pointer;}
+    #loading-span {margin-left: 5px; font-weight: 800;}
+    note { font-size: 12px; width: 275px; display: block; margin-top: 10px; margin-bottom: 10px; }
+    note a { display: inline-block; }
+</style> 
+
+<body>
+    <h1>ZineBot ✂️</h1>
+    <a href="index.html">← main page</a>
+    <!-- <a href="https://github.com/tombetthauser/wasm-zinebot">→ github</a> -->
+    <h2>Printing / Binding Half-Page Zines:</h2>
+    <p>ZineBot prints half-page zine pages in the correct order / rotation for a side-staple binding, NOT a clamshell binding. This means each page is printed double-sided in order, folded individually, then stacked side-by-side, then stapled together. A clamshell binding would involve stacking pages together before folding them and requires a special saddle-stapler.</p>
+        
+    <p>Side-staple binding can be done with any standard stapler and has the additional advantage of keeping all page-edges the same length. Clamshell binding creates uneven page edges that stick out which is referred to as 'creep' and requires a stack-cutter to remove. With all this said zine processing for clamshell binding will be added to ZineBot eventually maybe hopefully.</p>
+
+    <img src="assets/side-staple.png">
+</body>
+</html>
