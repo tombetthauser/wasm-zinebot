@@ -187,7 +187,7 @@
             let imageObj = readFilesOutput[i]            
             const magickOutputPage = await Magick.execute({
                 inputFiles: [ imageObj ], 
-                commands: [`convert ${imageObj.name} ${resizeString} ${textArea.value} page-${i}.png`]
+                commands: [`convert '${imageObj.name}' ${resizeString} ${textArea.value} page-${i}.png`]
             });
             pagesOutputArr.push(magickOutputPage);
             filesForZipDownload.push(magickOutputPage);
@@ -281,7 +281,7 @@
                 // rotate, resize, rotate, resize, append to bottom --- tested
                 magickOutputPage = await Magick.execute({
                     inputFiles: [ imageObj1, imageObj2 ], 
-                    commands: [`convert ${imageObj1.name} ${resizeString} ${imageObj2.name} ${resizeString} +append -rotate ${rotation} ${textArea.value} page-${i}.png`]
+                    commands: [`convert '${imageObj1.name}' ${resizeString} '${imageObj2.name}' ${resizeString} +append -rotate ${rotation} ${textArea.value} page-${i}.png`]
                 });
             } else if (imageObj1 !== null || imageObj2 !== null) {
                 // if top is missing...
@@ -290,7 +290,7 @@
                 const imageObj = imageObj1 !== null ? imageObj1 : imageObj2; 
                 magickOutputPage = await Magick.execute({
                     inputFiles: [ imageObj ], 
-                    commands: [`convert ${imageObj.name} ${resizeString} -rotate ${rotation} ${textArea.value} -bordercolor white -border 0x${imageHeight}x0x0 -crop ${imageWidth}x${imageHeight*4}+0+${(imageHeight*1.5)+1} page-${i}.png`]
+                    commands: [`convert '${imageObj.name}' ${resizeString} -rotate ${rotation} ${textArea.value} -bordercolor white -border 0x${imageHeight}x0x0 -crop ${imageWidth}x${imageHeight*4}+0+${(imageHeight*1.5)+1} page-${i}.png`]
                 });
             } else {
                 // // if both are missing...
