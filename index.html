@@ -22,7 +22,7 @@
     }
     h1 {
         width: 60%;
-        min-width: 300px;
+        min-width: 325px;
         border-bottom: 1px solid black;
         padding-bottom: 6px;
         margin-bottom: 6px;
@@ -41,17 +41,19 @@
     #user-files {cursor: pointer;}
     #loading-span {margin-left: 5px; font-weight: 800;}
     note { font-size: 12px; width: 275px; display: block; margin-top: 10px; margin-bottom: 10px; }
+    note a { display: inline-block; }
 </style> 
 
 <body>
     <h1>ZineBot ✂️</h1>
     <a href="https://github.com/tombetthauser/wasm-zinebot">→ github</a>
     <input type=file name=file id="user-files" aria-label="File Input" accept=".jpg,.jpeg,.png" multiple>
+    <note>* Note: Photos from phones may mess up image rotation. If you have issues take screenshots of photos or use <a href="https://jimpl.com/remove-exif/">this random tool</a> to remove rotation metadata.</note>
     <label>image magick:</label>
     <textarea cols="50" id="text-area"></textarea>
     <button id="random-button">random magick</button>
     <button id="reset-button">reset magick</button>
-    <note>* Note: Invalid image magick text may result in no output images. If you want to learn more checkout the <a href="https://legacy.imagemagick.org/Usage/">image magick documentation.</a></note>
+    <note>* Note: Invalid image magick text may result in no output images. If you want to learn more checkout the <a href="https://legacy.imagemagick.org/Usage/">image magick documentation</a>, it's magickal.</note>
     <label>page pixel width:</label>
     <input type="number" id="zine-width" min="85" max="2550" value="250"/>
     <button id="half-page-button">half-page zine</button>
