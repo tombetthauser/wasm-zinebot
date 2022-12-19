@@ -11,3 +11,21 @@ http://tombetthauser.com
 ---
 
 ![zinebot](./assets/readme-image.jpg)
+
+---
+
+# Planned Features
+- [X] full-page vertical
+- [X] full-page horizontal
+- [X] half-page vertical [side-staple]
+- [ ] half-page vertical [clam-shell]
+- [ ] half-page horizontal [side-staple]
+- [ ] quarter-page vertical [side-staple]
+- [ ] quarter-page vertical [clam-shell]
+- [ ] quarter-page horizontal [side-staple]
+- [ ] third-page vertical [side-staple]
+- [ ] sixth-page vertical [side-staple]
+- [ ] eighth-page vertical [side-staple]
+- [ ] cd-booklet zine [side-staple]
+- [ ] j-card zine
+- [ ] pdf output button
